@@ -1,6 +1,6 @@
 # CompareBookmarks
 
-Comapres Bookmarks for the following browsers:
+Compares Bookmarks for the following browsers:
 - Safari
 - Google Chrome
 - Firefox
