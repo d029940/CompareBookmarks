@@ -16,6 +16,8 @@ With the indicator one can step through the bookmarks highlighted in red. (Remar
 
 Right-Clicking on a url of a bookmark reveals the possibility to open the url in the standard browser.
 
+If one of the booksmarks file change, they can be reloaded pressing the "Refresh" button. Then a new comparison can be initiated.
+
 Security:
 - Since the bookmark file of the Safari browser is secured by MacOS you need to grant full disk access. 
 This is done in the Prefences App. 
