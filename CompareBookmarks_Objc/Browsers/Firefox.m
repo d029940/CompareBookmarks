@@ -16,7 +16,8 @@
 // default path to Firefox bookmarks location on Mac OSX
 static NSString * const kRelativePartPathToBookmarks = @"/Library/Application Support/Firefox/";
 static NSString * const kBookmarksFile = @"/places.sqlite";
-static NSString *const kInitFile = @"profiles.ini";
+static NSString *const kInstallFile = @"installs.ini";
+static NSString *const kProfilesFile = @"profiles.ini";
 
 
 @interface Firefox()
@@ -42,36 +43,74 @@ static NSString *_relativePathToBookmarks = nil;
         return _relativePathToBookmarks;
     
     // Getting the bookmark file from firefox is a 2-step process:
-    // 1. Get the profile.ini file
+    // 1. Get the installs.ini / profile.ini file
     // 2. Get the default bookmark file from the ini-file
     
     // Set the documents directory path to the documentsDirectory property.
     NSString *path = [NSHomeDirectory() stringByAppendingPathComponent:kRelativePartPathToBookmarks];
     
     // Read the INI-File
+    // First read the installs.ini ...
+    NSString *profilePath = nil;
     INIParser *parser = [[INIParser alloc] init];
-    INIP_Error_codes err = [parser parse:[path stringByAppendingPathComponent:kInitFile]];
+    INIP_Error_codes err = [parser parse:[path stringByAppendingPathComponent:kInstallFile]];
+    if (err == INIP_ERROR_NONE) {
+        for (NSString *section in [parser sections]) {
+            profilePath = [parser get:@"Default" fromSection:section];
+        }
+        if (!profilePath)
+            return nil;
+        _relativePathToBookmarks = [path stringByAppendingPathComponent:profilePath];
+        return _relativePathToBookmarks;
+    }
+    
+    // ... and then the profiles.ini
+    err = [parser parse:[path stringByAppendingPathComponent:kProfilesFile]];
     if (err != INIP_ERROR_NONE) {
-        NSLog(@"Cannot parse INI file at %@", [path stringByAppendingPathComponent:kInitFile]);
+        NSLog(@"Cannot parse INI file at %@", [path stringByAppendingPathComponent:kProfilesFile]);
         return nil;
     }
-    // Look for section starting with "Profile" and having a
-    NSString *profilePath = nil;
-    for ( NSString *section in [parser sections]) {
-        if ([section hasPrefix:@"Profile"] == NO)
-            continue;
+    
+    // First check if "StartWithLastProfile=1" in General section
+    NSString* profileNo = nil;
+    for (NSString *section in [parser sections]) {
+        if ([section isEqualToString:@"General"]) {
+            profileNo = [parser get:@"StartWithLastProfile" fromSection:section];
+            if ([profileNo isEqualToString:@"1"]) {
+                continue;
+            }
+        }
+    }
+    
+    // Look for section starting with "Profile" and having "Default=1"
+    
+    // Take profile number from "StartWithLastProfile"
+    if (profileNo) {
+        NSString *section = [@"Profile" stringByAppendingString:profileNo];
         NSString *defaultValue = [parser get:@"Default" fromSection:section];
-        if (!defaultValue)
-            continue;
         if ([defaultValue isEqualToString:@"1"]) {
             // found profile pathname
             profilePath = [parser get:@"Path" fromSection:section];
-            if (!profilePath) {
-                NSLog(@"No valid value for section %@ with key %@", section, @"Path");
-                return nil;
+        }
+    }
+    else {
+        // Search for profile number which "Default" property is set
+        for ( NSString *section in [parser sections]) {
+            if ([section hasPrefix:@"Profile"] == NO)
+                continue;
+            NSString *defaultValue = [parser get:@"Default" fromSection:section];
+            if (!defaultValue)
+                continue;
+            if ([defaultValue isEqualToString:@"1"]) {
+                // found profile pathname
+                profilePath = [parser get:@"Path" fromSection:section];
+                if (!profilePath) {
+                    NSLog(@"No valid value for section %@ with key %@", section, @"Path");
+                    return nil;
+                }
+                else
+                    break;
             }
-            else
-                break;
         }
     }
     
