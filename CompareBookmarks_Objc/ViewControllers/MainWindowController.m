@@ -99,7 +99,6 @@
  */
 - (IBAction)selectBrowser:(NSPopUpButton*)sender
 {
-    
     // When new browser is selected or on startup
     // - set user preferences
     // - read bookmarks of the selected browser
